@@ -1,0 +1,638 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>MoviesFllix — Stream Everything</title>
+
+  <!-- Google Analytics 4 -->
+  <!-- REPLACE G-XXXXXXXXXX with your actual GA4 Measurement ID -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-XXXXXXXXXX"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){ dataLayer.push(arguments); }
+    gtag('js', new Date());
+    gtag('config', 'G-XXXXXXXXXX', {
+      send_page_view: true,
+      user_properties: { site_version: 'v1.0', theme: 'dark' }
+    });
+
+    /* ── GA4 Event Helper ── */
+    function trackEvent(eventName, params = {}) {
+      gtag('event', eventName, params);
+      logToConsole(eventName, params);
+    }
+
+    /* ── Local debug console ── */
+    function logToConsole(name, params) {
+      const table = document.getElementById('event-log');
+      if (!table) return;
+      const counts = window._eventCounts || (window._eventCounts = {});
+      counts[name] = (counts[name] || 0) + 1;
+      const row = table.insertRow(0);
+      row.innerHTML = `
+        <td>${new Date().toLocaleTimeString()}</td>
+        <td class="ev-name">${name}</td>
+        <td>${JSON.stringify(params)}</td>
+        <td class="ev-count">${counts[name]}</td>`;
+      row.style.animation = 'fadeRow .4s ease';
+      updateSummary();
+    }
+
+    function updateSummary() {
+      const c = window._eventCounts || {};
+      const total = Object.values(c).reduce((a,b)=>a+b,0);
+      const top = Object.entries(c).sort((a,b)=>b[1]-a[1])[0];
+      document.getElementById('total-events').textContent = total;
+      if (top) document.getElementById('top-event').textContent = `${top[0]} (${top[1]}×)`;
+    }
+  </script>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:ital,wght@0,300;0,400;0,600;1,300&display=swap" rel="stylesheet"/>
+
+  <style>
+    :root {
+      --bg:       #060810;
+      --surface:  #0d1117;
+      --card:     #12181f;
+      --border:   #1e2733;
+      --accent:   #e63946;
+      --gold:     #f4a261;
+      --text:     #e8eaf0;
+      --muted:    #7a8694;
+      --glow:     0 0 28px rgba(230,57,70,.45);
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'DM Sans', sans-serif;
+      min-height: 100vh;
+      overflow-x: hidden;
+      cursor: default;
+    }
+
+    /* ── NOISE TEXTURE ── */
+    body::before {
+      content: '';
+      position: fixed; inset: 0;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.04'/%3E%3C/svg%3E");
+      pointer-events: none; z-index: 999;
+    }
+
+    /* ── NAVBAR ── */
+    nav {
+      position: sticky; top: 0; z-index: 100;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 5%; height: 64px;
+      background: rgba(6,8,16,.85);
+      backdrop-filter: blur(14px);
+      border-bottom: 1px solid var(--border);
+    }
+    .logo {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 1.9rem; letter-spacing: .08em;
+      color: var(--text);
+    }
+    .logo span { color: var(--accent); }
+    .nav-links { display: flex; gap: 2rem; }
+    .nav-links a {
+      color: var(--muted); text-decoration: none;
+      font-size: .9rem; font-weight: 600; letter-spacing: .06em; text-transform: uppercase;
+      transition: color .2s;
+    }
+    .nav-links a:hover { color: var(--text); }
+    .nav-btn {
+      background: var(--accent); color: #fff;
+      border: none; border-radius: 4px;
+      padding: .5rem 1.2rem; font-family: 'DM Sans', sans-serif;
+      font-size: .85rem; font-weight: 600; letter-spacing: .05em;
+      cursor: pointer; transition: transform .15s, box-shadow .15s;
+    }
+    .nav-btn:hover { transform: translateY(-1px); box-shadow: var(--glow); }
+
+    /* ── HERO ── */
+    .hero {
+      position: relative; min-height: 92vh;
+      display: flex; align-items: center;
+      padding: 0 8%;
+      overflow: hidden;
+    }
+    .hero-bg {
+      position: absolute; inset: 0;
+      background:
+        linear-gradient(to right, rgba(6,8,16,1) 30%, rgba(6,8,16,.3) 100%),
+        linear-gradient(to top, rgba(6,8,16,.9) 0%, transparent 50%),
+        url('https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?w=1600&q=80') center/cover no-repeat;
+    }
+    .hero-content { position: relative; max-width: 640px; }
+    .hero-badge {
+      display: inline-block;
+      background: var(--accent); color: #fff;
+      font-size: .72rem; font-weight: 700; letter-spacing: .12em; text-transform: uppercase;
+      padding: .3rem .75rem; border-radius: 3px; margin-bottom: 1.4rem;
+      animation: pulse 2.5s ease infinite;
+    }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.7} }
+    h1 {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: clamp(3.2rem, 7vw, 6rem); line-height: .95; letter-spacing: .03em;
+      margin-bottom: 1.2rem;
+    }
+    h1 em { color: var(--accent); font-style: normal; }
+    .hero-sub {
+      font-size: 1.05rem; color: var(--muted); line-height: 1.7;
+      margin-bottom: 2.2rem; font-weight: 300; max-width: 480px;
+    }
+    .hero-actions { display: flex; gap: 1rem; flex-wrap: wrap; }
+    .btn {
+      display: inline-flex; align-items: center; gap: .55rem;
+      padding: .85rem 2rem; border-radius: 5px;
+      font-family: 'DM Sans', sans-serif; font-size: .95rem; font-weight: 600;
+      cursor: pointer; border: none; transition: all .2s;
+      letter-spacing: .03em;
+    }
+    .btn-primary { background: var(--accent); color: #fff; }
+    .btn-primary:hover { transform: translateY(-2px); box-shadow: var(--glow); }
+    .btn-secondary { background: rgba(255,255,255,.09); color: var(--text); border: 1px solid var(--border); }
+    .btn-secondary:hover { background: rgba(255,255,255,.15); }
+    .btn svg { width: 18px; height: 18px; flex-shrink: 0; }
+
+    /* ── SECTION TITLES ── */
+    .section { padding: 5rem 8%; }
+    .sec-header { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 2.2rem; }
+    .sec-title { font-family: 'Bebas Neue', sans-serif; font-size: 2rem; letter-spacing: .06em; }
+    .sec-link { color: var(--accent); font-size: .85rem; font-weight: 600; text-decoration: none; letter-spacing: .05em; }
+    .sec-link:hover { text-decoration: underline; }
+
+    /* ── MOVIE GRID ── */
+    .movie-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(175px, 1fr)); gap: 1.4rem; }
+    .movie-card {
+      background: var(--card); border-radius: 8px;
+      border: 1px solid var(--border);
+      overflow: hidden; cursor: pointer;
+      transition: transform .25s, box-shadow .25s;
+      position: relative;
+    }
+    .movie-card:hover { transform: translateY(-6px) scale(1.02); box-shadow: 0 16px 40px rgba(0,0,0,.6); }
+    .movie-card:hover .card-overlay { opacity: 1; }
+    .movie-thumb { width: 100%; aspect-ratio: 2/3; object-fit: cover; display: block; }
+    .card-overlay {
+      position: absolute; inset: 0;
+      background: linear-gradient(to top, rgba(6,8,16,.97) 0%, rgba(6,8,16,.3) 60%);
+      opacity: 0; transition: opacity .25s;
+      display: flex; flex-direction: column; justify-content: flex-end; padding: 1rem;
+    }
+    .card-play {
+      width: 44px; height: 44px; border-radius: 50%;
+      background: var(--accent); color: #fff; border: none;
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer; margin-bottom: .75rem;
+      transition: transform .15s, box-shadow .15s;
+    }
+    .card-play:hover { transform: scale(1.1); box-shadow: var(--glow); }
+    .card-title { font-size: .85rem; font-weight: 600; line-height: 1.3; }
+    .card-meta { font-size: .75rem; color: var(--muted); margin-top: .25rem; }
+    .movie-info { padding: .75rem; }
+    .movie-info h3 { font-size: .9rem; font-weight: 600; margin-bottom: .2rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .rating { display: flex; align-items: center; gap: .3rem; font-size: .78rem; color: var(--gold); }
+    .genre-badge {
+      display: inline-block;
+      font-size: .68rem; padding: .15rem .5rem;
+      border-radius: 3px; background: rgba(230,57,70,.15); color: var(--accent);
+      border: 1px solid rgba(230,57,70,.25); margin-top: .3rem;
+    }
+    .wishlist-btn {
+      position: absolute; top: 8px; right: 8px;
+      width: 32px; height: 32px; border-radius: 50%;
+      background: rgba(0,0,0,.6); border: 1px solid var(--border);
+      color: var(--muted); cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1rem; transition: all .2s; backdrop-filter: blur(4px);
+      z-index: 10;
+    }
+    .wishlist-btn.active, .wishlist-btn:hover { color: var(--accent); border-color: var(--accent); }
+
+    /* ── SEARCH ── */
+    .search-bar {
+      display: flex; gap: .75rem; margin-bottom: 2.5rem;
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 8px; padding: .75rem 1rem;
+      align-items: center;
+    }
+    .search-bar input {
+      flex: 1; background: transparent; border: none; outline: none;
+      color: var(--text); font-family: 'DM Sans', sans-serif; font-size: 1rem;
+    }
+    .search-bar input::placeholder { color: var(--muted); }
+    .search-btn {
+      background: var(--accent); color: #fff; border: none; border-radius: 5px;
+      padding: .55rem 1.3rem; font-family: 'DM Sans', sans-serif;
+      font-weight: 600; font-size: .9rem; cursor: pointer; transition: box-shadow .2s;
+    }
+    .search-btn:hover { box-shadow: var(--glow); }
+
+    /* ── GENRE FILTER ── */
+    .genre-filter { display: flex; gap: .6rem; flex-wrap: wrap; margin-bottom: 2rem; }
+    .genre-pill {
+      padding: .45rem 1.1rem; border-radius: 99px;
+      background: var(--card); border: 1px solid var(--border);
+      color: var(--muted); font-size: .82rem; font-weight: 600; cursor: pointer;
+      transition: all .2s;
+    }
+    .genre-pill:hover, .genre-pill.active {
+      background: var(--accent); border-color: var(--accent); color: #fff;
+    }
+
+    /* ── NEWSLETTER ── */
+    .newsletter {
+      background: linear-gradient(135deg, #0d1117 0%, #12181f 100%);
+      border: 1px solid var(--border); border-radius: 12px;
+      padding: 3rem 4rem; text-align: center;
+      position: relative; overflow: hidden;
+    }
+    .newsletter::before {
+      content:''; position: absolute; top:-60px; right:-60px;
+      width: 260px; height: 260px; border-radius: 50%;
+      background: radial-gradient(circle, rgba(230,57,70,.18) 0%, transparent 70%);
+    }
+    .newsletter h2 { font-family: 'Bebas Neue', sans-serif; font-size: 2.5rem; letter-spacing: .06em; margin-bottom: .75rem; }
+    .newsletter p { color: var(--muted); margin-bottom: 1.8rem; }
+    .nl-form { display: flex; gap: .75rem; max-width: 440px; margin: 0 auto; }
+    .nl-form input {
+      flex: 1; background: rgba(255,255,255,.05); border: 1px solid var(--border);
+      border-radius: 5px; padding: .75rem 1rem; color: var(--text);
+      font-family: 'DM Sans', sans-serif; font-size: .95rem; outline: none;
+      transition: border-color .2s;
+    }
+    .nl-form input:focus { border-color: var(--accent); }
+    .nl-sub-btn {
+      background: var(--accent); color: #fff; border: none; border-radius: 5px;
+      padding: .75rem 1.5rem; font-family: 'DM Sans', sans-serif;
+      font-weight: 700; font-size: .9rem; cursor: pointer; white-space: nowrap;
+      transition: box-shadow .2s;
+    }
+    .nl-sub-btn:hover { box-shadow: var(--glow); }
+
+    /* ── GA4 CONSOLE ── */
+    .console-section {
+      background: #04060a; border-top: 1px solid var(--border); padding: 3rem 8%;
+    }
+    .console-header {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 1.5rem;
+    }
+    .console-title {
+      font-family: 'Bebas Neue', sans-serif; font-size: 1.6rem; letter-spacing: .06em;
+      display: flex; align-items: center; gap: .75rem;
+    }
+    .live-dot {
+      width: 9px; height: 9px; border-radius: 50%;
+      background: #2ecc71; box-shadow: 0 0 8px #2ecc71;
+      animation: blink 1.4s ease infinite;
+    }
+    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:.2} }
+    .stats-bar {
+      display: flex; gap: 2rem; margin-bottom: 1.5rem; flex-wrap: wrap;
+    }
+    .stat-item { text-align: center; }
+    .stat-val {
+      font-family: 'Bebas Neue', sans-serif; font-size: 2rem;
+      color: var(--accent); letter-spacing: .04em;
+    }
+    .stat-lbl { font-size: .75rem; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; }
+    .log-table-wrap { overflow-x: auto; border-radius: 8px; border: 1px solid var(--border); }
+    table { width: 100%; border-collapse: collapse; font-size: .82rem; }
+    th {
+      background: #0d1117; padding: .75rem 1rem; text-align: left;
+      color: var(--muted); font-weight: 600; text-transform: uppercase;
+      letter-spacing: .07em; font-size: .72rem; border-bottom: 1px solid var(--border);
+    }
+    td { padding: .65rem 1rem; border-bottom: 1px solid rgba(30,39,51,.5); vertical-align: top; }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: rgba(255,255,255,.02); }
+    .ev-name { color: var(--accent); font-weight: 600; }
+    .ev-count { color: var(--gold); font-weight: 700; }
+    .empty-row td { color: var(--muted); text-align: center; padding: 2rem; }
+    @keyframes fadeRow { from { opacity: 0; background: rgba(230,57,70,.07); } to { opacity: 1; } }
+
+    /* ── TOAST ── */
+    #toast {
+      position: fixed; bottom: 2rem; right: 2rem; z-index: 9999;
+      background: var(--card); border: 1px solid var(--border);
+      border-left: 3px solid var(--accent);
+      padding: .85rem 1.3rem; border-radius: 6px;
+      font-size: .88rem; color: var(--text);
+      transform: translateY(120%); opacity: 0;
+      transition: all .3s cubic-bezier(.34,1.56,.64,1);
+      max-width: 280px;
+    }
+    #toast.show { transform: translateY(0); opacity: 1; }
+
+    /* ── FOOTER ── */
+    footer {
+      background: #04060a; border-top: 1px solid var(--border);
+      padding: 2rem 8%; display: flex; justify-content: space-between;
+      align-items: center; flex-wrap: wrap; gap: 1rem;
+      font-size: .82rem; color: var(--muted);
+    }
+    footer strong { color: var(--text); }
+
+    /* ── RESPONSIVE ── */
+    @media(max-width: 768px) {
+      .nav-links { display: none; }
+      h1 { font-size: 3rem; }
+      .hero-actions { flex-direction: column; }
+      .newsletter { padding: 2rem; }
+      .nl-form { flex-direction: column; }
+      .movie-grid { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); }
+    }
+
+    /* ── FADE IN ── */
+    .fade-in { opacity: 0; transform: translateY(24px); animation: fadeIn .7s ease forwards; }
+    @keyframes fadeIn { to { opacity: 1; transform: translateY(0); } }
+    .d1 { animation-delay: .1s; } .d2 { animation-delay: .25s; }
+    .d3 { animation-delay: .4s; } .d4 { animation-delay: .55s; }
+  </style>
+</head>
+<body>
+
+<!-- ── NAVBAR ── -->
+<nav>
+  <div class="logo">Movies<span>Fllix</span></div>
+  <div class="nav-links">
+    <a href="#" onclick="trackEvent('nav_click',{link:'Home'})">Home</a>
+    <a href="#movies" onclick="trackEvent('nav_click',{link:'Movies'})">Movies</a>
+    <a href="#" onclick="trackEvent('nav_click',{link:'Series'})">Series</a>
+    <a href="#" onclick="trackEvent('nav_click',{link:'My List'})">My List</a>
+  </div>
+  <button class="nav-btn" onclick="trackEvent('button_click',{button_name:'Sign In',location:'navbar'});showToast('Signing in…')">
+    Sign In
+  </button>
+</nav>
+
+<!-- ── HERO ── -->
+<section class="hero">
+  <div class="hero-bg"></div>
+  <div class="hero-content">
+    <span class="hero-badge fade-in d1">🎬 New This Week</span>
+    <h1 class="fade-in d2">Stream <em>Every</em><br>Moment.</h1>
+    <p class="hero-sub fade-in d3">
+      Thousands of movies, series &amp; originals — ad-free, in 4K Ultra HD.
+      Cancel anytime.
+    </p>
+    <div class="hero-actions fade-in d4">
+      <button class="btn btn-primary" id="startBtn"
+        onclick="trackEvent('button_click',{button_name:'Start Watching',location:'hero',content_type:'cta'});showToast('🎉 Starting your free trial!')">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+        Start Watching
+      </button>
+      <button class="btn btn-secondary"
+        onclick="trackEvent('button_click',{button_name:'Browse Movies',location:'hero',content_type:'cta'});document.getElementById('movies').scrollIntoView({behavior:'smooth'})">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+        Browse Movies
+      </button>
+    </div>
+  </div>
+</section>
+
+<!-- ── TRENDING MOVIES ── -->
+<section class="section" id="movies">
+  <div class="sec-header">
+    <h2 class="sec-title">🔥 Trending Now</h2>
+    <a href="#" class="sec-link" onclick="trackEvent('see_all_click',{section:'trending'})">See All →</a>
+  </div>
+
+  <!-- Search -->
+  <div class="search-bar">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#7a8694" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+    <input type="text" placeholder="Search movies, genres, actors…" id="searchInput"
+      oninput="trackEvent('search',{search_term:this.value.slice(-1)?this.value:'[cleared]',character_count:this.value.length})"/>
+    <button class="search-btn" onclick="handleSearch()">Search</button>
+  </div>
+
+  <!-- Genre Pills -->
+  <div class="genre-filter" id="genreFilter"></div>
+
+  <!-- Movie Cards -->
+  <div class="movie-grid" id="movieGrid"></div>
+</section>
+
+<!-- ── NEWSLETTER ── -->
+<section class="section">
+  <div class="newsletter">
+    <h2>Never Miss a Premiere</h2>
+    <p>Get weekly picks &amp; early-access invites straight to your inbox.</p>
+    <div class="nl-form">
+      <input type="email" id="emailInput" placeholder="your@email.com"/>
+      <button class="nl-sub-btn" onclick="handleSubscribe()">Subscribe</button>
+    </div>
+  </div>
+</section>
+
+<!-- ── GA4 LIVE EVENT CONSOLE ── -->
+<section class="console-section">
+  <div class="console-header">
+    <div class="console-title">
+      <span class="live-dot"></span>
+      GA4 Live Event Console
+    </div>
+    <button class="nav-btn" onclick="clearLog()" style="background:transparent;border:1px solid var(--border);color:var(--muted)">Clear Log</button>
+  </div>
+  <div class="stats-bar">
+    <div class="stat-item">
+      <div class="stat-val" id="total-events">0</div>
+      <div class="stat-lbl">Total Events</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-val" id="top-event">—</div>
+      <div class="stat-lbl">Top Event</div>
+    </div>
+  </div>
+  <div class="log-table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Time</th><th>Event Name</th><th>Parameters</th><th>Count</th>
+        </tr>
+      </thead>
+      <tbody id="event-log">
+        <tr class="empty-row"><td colspan="4">Interact with the page to see GA4 events appear here…</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<footer>
+  <div><strong>MoviesFllix</strong> — GA4 Analytics Demo</div>
+  <div>Replace <code>G-XXXXXXXXXX</code> with your real Measurement ID to send live data.</div>
+</footer>
+
+<!-- TOAST -->
+<div id="toast"></div>
+
+<!-- ── JAVASCRIPT ── -->
+<script>
+  /* ────────── DATA ────────── */
+  const genres = ['All','Action','Drama','Sci-Fi','Horror','Comedy','Thriller','Animation'];
+  const movies = [
+    { id:1, title:'Interstellar',    year:2014, genre:'Sci-Fi',    rating:8.7, img:'https://images.unsplash.com/photo-1446776811953-b23d57bd21aa?w=300&q=70' },
+    { id:2, title:'The Dark Knight', year:2008, genre:'Action',    rating:9.0, img:'https://images.unsplash.com/photo-1531259683007-016a7b628fc3?w=300&q=70' },
+    { id:3, title:'Dune: Part Two',  year:2024, genre:'Sci-Fi',    rating:8.5, img:'https://images.unsplash.com/photo-1500534314209-a25ddb2bd429?w=300&q=70' },
+    { id:4, title:'Oppenheimer',     year:2023, genre:'Drama',     rating:8.9, img:'https://images.unsplash.com/photo-1473091534298-04dcbce3278c?w=300&q=70' },
+    { id:5, title:'A Quiet Place',   year:2018, genre:'Horror',    rating:7.5, img:'https://images.unsplash.com/photo-1509347528160-9a9e33742cdb?w=300&q=70' },
+    { id:6, title:'Knives Out',      year:2019, genre:'Thriller',  rating:7.9, img:'https://images.unsplash.com/photo-1536440136628-849c177e76a1?w=300&q=70' },
+    { id:7, title:'Elemental',       year:2023, genre:'Animation', rating:7.0, img:'https://images.unsplash.com/photo-1611162617213-7d7a39e9b1d7?w=300&q=70' },
+    { id:8, title:'Barbie',          year:2023, genre:'Comedy',    rating:7.1, img:'https://images.unsplash.com/photo-1551963831-b3b1ca40c98e?w=300&q=70' },
+    { id:9, title:'1917',            year:2019, genre:'Drama',     rating:8.3, img:'https://images.unsplash.com/photo-1521336575822-6da63fb45455?w=300&q=70' },
+    {id:10, title:'Parasite',        year:2019, genre:'Thriller',  rating:8.6, img:'https://images.unsplash.com/photo-1533562030500-8b2a72d88e82?w=300&q=70' },
+  ];
+
+  let activeGenre = 'All';
+  let wishlist = new Set();
+
+  /* ────────── RENDER GENRES ────────── */
+  const gf = document.getElementById('genreFilter');
+  genres.forEach(g => {
+    const p = document.createElement('button');
+    p.className = 'genre-pill' + (g==='All'?' active':'');
+    p.textContent = g;
+    p.onclick = () => {
+      document.querySelectorAll('.genre-pill').forEach(x=>x.classList.remove('active'));
+      p.classList.add('active');
+      activeGenre = g;
+      trackEvent('genre_filter',{genre:g});
+      renderMovies();
+    };
+    gf.appendChild(p);
+  });
+
+  /* ────────── RENDER MOVIES ────────── */
+  function renderMovies(filter='') {
+    const grid = document.getElementById('movieGrid');
+    const list = movies.filter(m =>
+      (activeGenre==='All' || m.genre===activeGenre) &&
+      (!filter || m.title.toLowerCase().includes(filter.toLowerCase()))
+    );
+    grid.innerHTML = '';
+    if (!list.length) {
+      grid.innerHTML = '<p style="color:var(--muted);padding:2rem">No movies found.</p>';
+      return;
+    }
+    list.forEach((m,i) => {
+      const card = document.createElement('div');
+      card.className = 'movie-card';
+      card.style.animationDelay = `${i*0.07}s`;
+      const inWish = wishlist.has(m.id);
+      card.innerHTML = `
+        <img class="movie-thumb" src="${m.img}" alt="${m.title}" loading="lazy"/>
+        <div class="card-overlay">
+          <button class="card-play" onclick="handlePlay(${m.id},'${m.title}','${m.genre}',${m.rating})">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="white"><path d="M8 5v14l11-7z"/></svg>
+          </button>
+          <div class="card-title">${m.title}</div>
+          <div class="card-meta">${m.year} · ⭐ ${m.rating}</div>
+        </div>
+        <button class="wishlist-btn ${inWish?'active':''}" title="Add to Wishlist"
+          onclick="toggleWishlist(${m.id},'${m.title}')">♥</button>
+        <div class="movie-info">
+          <h3>${m.title}</h3>
+          <div class="rating">⭐ ${m.rating}</div>
+          <span class="genre-badge">${m.genre}</span>
+        </div>`;
+      grid.appendChild(card);
+    });
+  }
+  renderMovies();
+
+  /* ────────── HANDLERS ────────── */
+  function handlePlay(id,title,genre,rating) {
+    trackEvent('play_button_click',{
+      button_name:'Play',content_id:id,
+      content_name:title,genre,rating,location:'movie_card'
+    });
+    showToast(`▶ Playing "${title}"`);
+  }
+
+  function toggleWishlist(id,title) {
+    if (wishlist.has(id)) {
+      wishlist.delete(id);
+      trackEvent('remove_from_wishlist',{content_id:id,content_name:title});
+      showToast(`Removed "${title}" from list`);
+    } else {
+      wishlist.add(id);
+      trackEvent('add_to_wishlist',{content_id:id,content_name:title});
+      showToast(`❤ Added "${title}" to your list!`);
+    }
+    renderMovies(document.getElementById('searchInput').value);
+  }
+
+  function handleSearch() {
+    const q = document.getElementById('searchInput').value.trim();
+    trackEvent('button_click',{button_name:'Search',location:'search_bar',query:q||'[empty]'});
+    renderMovies(q);
+  }
+
+  function handleSubscribe() {
+    const e = document.getElementById('emailInput').value.trim();
+    if (!e || !e.includes('@')) { showToast('⚠ Enter a valid email.'); return; }
+    trackEvent('button_click',{button_name:'Subscribe Newsletter',location:'newsletter',has_email:true});
+    trackEvent('newsletter_signup',{email_provided:true});
+    document.getElementById('emailInput').value='';
+    showToast('✅ Subscribed! Check your inbox.');
+  }
+
+  function clearLog() {
+    const tb = document.getElementById('event-log');
+    tb.innerHTML = '<tr class="empty-row"><td colspan="4">Log cleared. Keep interacting…</td></tr>';
+    window._eventCounts = {};
+    document.getElementById('total-events').textContent = '0';
+    document.getElementById('top-event').textContent = '—';
+  }
+
+  /* ────────── TOAST ────────── */
+  let toastTimer;
+  function showToast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg; t.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(()=>t.classList.remove('show'), 2800);
+  }
+
+  /* ────────── PAGE LOAD EVENTS ────────── */
+  window.addEventListener('load', () => {
+    trackEvent('page_view',{page_title:'MoviesFllix Home',page_location:window.location.href});
+    // Remove placeholder row on first real event
+    const placeholder = document.querySelector('.empty-row');
+    if (placeholder) placeholder.remove();
+  });
+
+  /* ────────── SCROLL DEPTH ────────── */
+  const depths = new Set();
+  window.addEventListener('scroll', () => {
+    const pct = Math.round((window.scrollY / (document.body.scrollHeight - window.innerHeight)) * 100);
+    [25,50,75,90].forEach(d => {
+      if (pct >= d && !depths.has(d)) {
+        depths.add(d);
+        trackEvent('scroll_depth',{percent_scrolled:d,page:'home'});
+      }
+    });
+  });
+
+  /* ────────── ENGAGEMENT TIME ────────── */
+  let engStart = Date.now();
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) {
+      const secs = Math.round((Date.now()-engStart)/1000);
+      trackEvent('user_engagement',{engagement_time_msec:secs*1000,seconds:secs});
+      engStart = Date.now();
+    }
+  });
+</script>
+</body>
+</html>
